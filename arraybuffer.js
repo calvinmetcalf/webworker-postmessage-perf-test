@@ -1,25 +1,34 @@
-function arrayBufferToBinaryString(buffer) {
-  var binary = "";
-  var bytes = new Uint8Array(buffer);
-  var length = bytes.byteLength;
-  for (var i = 0; i < length; i++) {
-    binary += String.fromCharCode(bytes[i]);
+function arrayBufferToBinaryString(buffer, callback) {
+  var blob = new Blob([buffer]);
+  var filereader = new FileReader();
+  filereader.onload = function(e) {
+    callback(null, e.target.result)
   }
-  return binary;
+  filereader.onerror = callback;
+  filereader.readAsText(blob);
 }
 
-function binaryStringToArrayBuffer(bin) {
-  var length = bin.length;
-  var buf = new ArrayBuffer(length);
-  var arr = new Uint8Array(buf);
-  for (var i = 0; i < length; i++) {
-    arr[i] = bin.charCodeAt(i);
+function binaryStringToArrayBuffer(bin, callback) {
+  var blob = new Blob([bin]);
+  var filereader = new FileReader();
+  filereader.onload = function(e) {
+    callback(null, e.target.result)
   }
-  return buf;
+  filereader.onerror = callback;
+  filereader.readAsArrayBuffer(blob);
 }
 
 self.addEventListener('message', function (e) {
-  var message = JSON.parse(arrayBufferToBinaryString(e.data));
-  var buff = binaryStringToArrayBuffer(JSON.stringify(message));
-  self.postMessage(buff, [buff]);
+  arrayBufferToBinaryString(e.data, function (err, data) {
+    if (err) {
+      throw err;
+    }
+    var parsed = JSON.parse(data);
+    binaryStringToArrayBuffer(JSON.stringify(parsed), function (err, buff){
+      if (err) {
+        throw err;
+      }
+      self.postMessage(buff, [buff]);
+    })
+  });
 });
